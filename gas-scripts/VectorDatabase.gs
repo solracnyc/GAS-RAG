@@ -79,9 +79,13 @@ function importChunks(chunks) {
   const timestamp = new Date();
 
   chunks.forEach(chunk => {
-    // Calculate vector norm for optimization
-    const embedding = JSON.parse(chunk.embedding);
-    const vectorNorm = Math.sqrt(
+    // Handle embedding whether it's already an array or needs parsing
+    const embedding = Array.isArray(chunk.embedding)
+      ? chunk.embedding
+      : JSON.parse(chunk.embedding);
+
+    // Use pre-calculated norm if available, otherwise calculate
+    const vectorNorm = chunk.vector_norm || Math.sqrt(
       embedding.reduce((sum, val) => sum + val * val, 0)
     );
 
@@ -90,13 +94,13 @@ function importChunks(chunks) {
       chunk.content.substring(0, 200) + '...',
       chunk.content,
       JSON.stringify(embedding),
-      chunk.metadata.source_url,
-      chunk.metadata.component_type || '',
-      chunk.metadata.chunk_type,
-      chunk.metadata.method_signature || '',
-      chunk.metadata.has_code ? 'TRUE' : 'FALSE',
-      chunk.metadata.has_example ? 'TRUE' : 'FALSE',
-      CONFIG.EMBEDDING_DIMENSIONS,
+      chunk.metadata?.source_url || chunk.source_url || '',
+      chunk.metadata?.component_type || chunk.component_type || '',
+      chunk.metadata?.chunk_type || chunk.chunk_type || '',
+      chunk.metadata?.method_signature || '',
+      chunk.metadata?.has_code ? 'TRUE' : 'FALSE',
+      chunk.metadata?.has_example ? 'TRUE' : 'FALSE',
+      chunk.embedding_dimensions || CONFIG.EMBEDDING_DIMENSIONS,
       vectorNorm,
       0,
       timestamp

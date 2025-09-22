@@ -1,7 +1,6 @@
 require('dotenv').config();
 const fs = require('fs').promises;
 const path = require('path');
-const fetch = require('node-fetch');
 
 /**
  * Google Sheets Vector Importer
@@ -92,6 +91,8 @@ class SheetsImporter {
    * Send a batch of chunks to the Web App
    */
   async sendBatch(chunks) {
+    const fetch = (await import('node-fetch')).default;
+
     const response = await fetch(this.webAppUrl, {
       method: 'POST',
       headers: {
@@ -118,6 +119,7 @@ class SheetsImporter {
     console.log('\n🔍 Checking database status...');
 
     try {
+      const fetch = (await import('node-fetch')).default;
       const response = await fetch(`${this.webAppUrl}?action=status`);
       const status = await response.json();
 
