@@ -1,0 +1,40 @@
+# Environment variables
+.env
+.env.local
+
+# API keys and credentials
+config/api_keys.json
+config/credentials.json
+
+# Dependencies
+node_modules/
+
+# Output and data files
+output/
+data/raw/
+data/processed/
+logs/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files
+*.test.js
+coverage/
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# Build files
+dist/
+build/
