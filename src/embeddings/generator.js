@@ -252,7 +252,11 @@ if (require.main === module) {
 
   fs.readdir(dataDir)
     .then(files => {
-      const crawlFiles = files.filter(f => f.startsWith('crawl_') && f.endsWith('.json'));
+      const crawlFiles = files.filter(f =>
+        f.startsWith('crawl_') &&
+        f.endsWith('.json') &&
+        !f.includes('_stats_')
+      );
       if (crawlFiles.length === 0) {
         throw new Error('No crawl data found. Run crawler first.');
       }

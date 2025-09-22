@@ -10,8 +10,8 @@ class FirecrawlCrawler {
   constructor(config = {}) {
     this.apiKey = config.apiKey || process.env.FIRECRAWL_API_KEY;
     this.baseUrl = 'https://api.firecrawl.dev/v2';
-    this.crawlLimit = config.crawlLimit || parseInt(process.env.CRAWL_LIMIT) || 500;
-    this.maxDepth = config.maxDepth || parseInt(process.env.MAX_DEPTH) || 5;
+    this.crawlLimit = config.crawlLimit || parseInt(process.env.CRAWL_LIMIT) || 1500;
+    this.maxDepth = config.maxDepth || parseInt(process.env.MAX_DEPTH) || 10;
     this.waitBetweenRequests = config.waitBetweenRequests || parseInt(process.env.WAIT_BETWEEN_REQUESTS) || 1000;
   }
 
@@ -21,27 +21,21 @@ class FirecrawlCrawler {
   buildCrawlConfig() {
     return {
       url: "https://developers.google.com/apps-script/",
-      crawlerOptions: {
-        includePaths: [
-          "https://developers.google.com/apps-script/reference/**",
-          "https://developers.google.com/apps-script/advanced/**",
-          "https://developers.google.com/apps-script/guides/**",
-          "https://developers.google.com/apps-script/samples/**"
-        ],
-        excludePaths: ["**?hl=**"], // Exclude language variants
-        limit: this.crawlLimit,
-        maxDepth: this.maxDepth,
-        waitBetweenRequests: this.waitBetweenRequests
-      },
-      pageOptions: {
+      // Crawl-level options at root
+      limit: this.crawlLimit,
+      includePaths: [
+        "/apps-script/reference/.*",
+        "/apps-script/advanced/.*",
+        "/apps-script/guides/.*",
+        "/apps-script/samples/.*"
+      ],
+      excludePaths: [".*\\?hl=.*"], // Exclude language variants
+
+      // Scraping options wrapped in scrapeOptions
+      scrapeOptions: {
+        formats: ["markdown"], // Simplified for now - just markdown
         onlyMainContent: true,
-        formats: [
-          "markdown",
-          {
-            type: "json",
-            schema: this.getStructuredSchema()
-          }
-        ]
+        timeout: 15000
       }
     };
   }
@@ -121,7 +115,8 @@ class FirecrawlCrawler {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(`API Error ${response.status}: ${data.error || 'Unknown error'}`);
+        console.error('API Response:', JSON.stringify(data, null, 2));
+        throw new Error(`API Error ${response.status}: ${data.error || data.details?.[0]?.message || 'Unknown error'}`);
       }
 
       if (data.id) {
@@ -218,17 +213,36 @@ class FirecrawlCrawler {
    * Process crawled data
    */
   processCrawlData(rawData) {
-    const processed = rawData.map(page => ({
-      url: page.url || page.metadata?.url,
-      title: page.metadata?.title || page.json?.page_title || 'Untitled',
-      markdown: page.markdown || '',
-      structured_data: page.json || {},
-      component_type: page.json?.component_type || null,
-      methods: page.json?.methods || [],
-      properties: page.json?.properties || [],
-      scrapeDate: new Date().toISOString(),
-      metadata: page.metadata || {}
-    }));
+    const processed = rawData.map(page => {
+      // Handle v2 response structure where JSON is in formats array
+      let structuredData = {};
+
+      // Check if we have structured data in the new format
+      if (page.formats && Array.isArray(page.formats)) {
+        const jsonFormat = page.formats.find(f => f.type === 'json');
+        if (jsonFormat && jsonFormat.data) {
+          structuredData = jsonFormat.data;
+        }
+      } else if (page.json) {
+        // Fallback to direct json field if it exists
+        structuredData = page.json;
+      } else if (page.extract) {
+        // Another possible location in v2
+        structuredData = page.extract;
+      }
+
+      return {
+        url: page.url || page.metadata?.url,
+        title: page.metadata?.title || structuredData.page_title || 'Untitled',
+        markdown: page.markdown || '',
+        structured_data: structuredData,
+        component_type: structuredData.component_type || null,
+        methods: structuredData.methods || [],
+        properties: structuredData.properties || [],
+        scrapeDate: new Date().toISOString(),
+        metadata: page.metadata || {}
+      };
+    });
 
     // Statistics
     const stats = {

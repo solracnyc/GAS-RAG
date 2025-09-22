@@ -7,7 +7,7 @@
     "pipeline": "node src/index.js",
     "crawl": "node src/scraper/crawler.js",
     "embed": "node src/embeddings/generator.js",
-    "import": "node src/storage/importer.js",
+    "import": "node src/storage/sheets-importer.js",
     "search": "node src/search/rag.js",
     "test": "node src/test.js"
   },
