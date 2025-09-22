@@ -36,6 +36,7 @@ function doPost(e) {
 
     switch (action) {
       case 'import':
+      case 'importChunks':  // Support both action names
         const result = importChunks(data.chunks);
         return jsonResponse({ success: true, ...result });
 
