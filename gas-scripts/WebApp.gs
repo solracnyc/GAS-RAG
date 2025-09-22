@@ -104,17 +104,25 @@ function jsonResponse(data, statusCode = 200) {
 
 /**
  * Initial setup function to run manually
+ * IMPORTANT: Add GOOGLE_AI_KEY to Script Properties FIRST before running this
  */
 function initialSetup() {
-  // Set your Google AI key here
-  const GOOGLE_AI_KEY = 'YOUR_KEY_HERE';
+  // Check if API key exists in Script Properties (secure storage)
+  const apiKey = PropertiesService.getScriptProperties().getProperty('GOOGLE_AI_KEY');
 
-  PropertiesService.getScriptProperties().setProperty('GOOGLE_AI_KEY', GOOGLE_AI_KEY);
+  if (!apiKey) {
+    throw new Error(
+      'SECURITY: Please add GOOGLE_AI_KEY to Script Properties first!\n' +
+      'Go to Project Settings → Script Properties → Add Property\n' +
+      'Never hardcode API keys in your code!'
+    );
+  }
 
   // Create the vector database
   const url = setupVectorDatabase();
 
   Logger.log('Setup complete!');
+  Logger.log('API Key: Securely loaded from Script Properties');
   Logger.log('Spreadsheet URL: ' + url);
   Logger.log('Next: Deploy as Web App and copy the URL');
 }
