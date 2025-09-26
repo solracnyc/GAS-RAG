@@ -30,18 +30,19 @@ function doGet(e) {
  * Handle POST requests
  */
 function doPost(e) {
-  const lock = LockService.getScriptLock();
+  // TEMPORARILY DISABLED: Lock causing issues with stuck lock from old code
+  // const lock = LockService.getScriptLock();
 
   try {
-    // Wait up to 30 seconds for exclusive access
-    const acquired = lock.waitLock(30000);
-    if (!acquired) {
-      console.error('Could not acquire lock - server busy');
-      return jsonResponse({
-        error: 'Server busy - could not acquire lock',
-        retryAfter: 5
-      }, 503);
-    }
+    // // Wait up to 30 seconds for exclusive access
+    // const acquired = lock.waitLock(30000);
+    // if (!acquired) {
+    //   console.error('Could not acquire lock - server busy');
+    //   return jsonResponse({
+    //     error: 'Server busy - could not acquire lock',
+    //     retryAfter: 5
+    //   }, 503);
+    // }
 
     console.log(`POST request received with action: ${e.postData?.contents?.substring(0, 100)}`);
 
@@ -79,9 +80,9 @@ function doPost(e) {
     console.error('Stack:', error.stack);
     return jsonResponse({ error: error.message }, 500);
   } finally {
-    // Always release the lock (no check needed - hasLock() has known reliability issues)
-    lock.releaseLock();
-    console.log('Lock released');
+    // TEMPORARILY DISABLED: Lock release (lock acquisition is disabled above)
+    // lock.releaseLock();
+    // console.log('Lock released');
   }
 }
 
