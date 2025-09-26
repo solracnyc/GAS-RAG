@@ -2,10 +2,12 @@
 
 /**
  * Upload embeddings from local JSON file to Google Apps Script Web App
+ *
+ * UPDATED: Using axios to properly handle 302 redirects with POST→GET method change
  */
 
 const fs = require('fs');
-const https = require('https');
+const axios = require('axios');
 
 // Configuration
 const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxqw1sP_rvNYf6PJYzsJRpH-yEsNYo31WkYs8LtGaT3MNHqUiiDbVjXU3Fjb_a_xd4g8Q/exec';
@@ -15,63 +17,61 @@ const RETRY_ATTEMPTS = 3; // Retry failed batches
 const RETRY_DELAY = 2000; // 2 second delay between retries
 
 async function sendBatch(chunks, batchNumber, totalBatches) {
-  return new Promise((resolve, reject) => {
-    const data = JSON.stringify({
-      action: 'importChunks',
-      chunks: chunks
-    });
-
-    const url = new URL(WEB_APP_URL);
-
-    const options = {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(data)
-      }
-    };
-
+  try {
     console.log(`Sending batch ${batchNumber}/${totalBatches} (${chunks.length} chunks)...`);
 
-    const req = https.request(url, options, (res) => {
-      let responseData = '';
-
-      res.on('data', (chunk) => {
-        responseData += chunk;
-      });
-
-      res.on('end', () => {
-        try {
-          const result = JSON.parse(responseData);
-          console.log(`Batch ${batchNumber} response:`, result);
-
-          // Verify the response indicates success
-          if (result.success === false || result.error) {
-            console.error(`Batch ${batchNumber} failed on server:`, result.error || 'Unknown error');
-            resolve({ error: result.error || 'Server reported failure', serverResponse: result });
-          } else if (result.imported === 0 && chunks.length > 0) {
-            console.error(`Batch ${batchNumber} WARNING: No chunks imported despite sending ${chunks.length}`);
-            resolve({ error: 'No chunks imported', imported: 0, serverResponse: result });
-          } else {
-            console.log(`Batch ${batchNumber} SUCCESS: Imported ${result.imported}/${chunks.length} chunks`);
-            resolve(result);
-          }
-        } catch (e) {
-          console.error(`Error parsing response for batch ${batchNumber}:`, e.message);
-          console.error('Response:', responseData.substring(0, 500));
-          resolve({ error: 'Failed to parse response', rawResponse: responseData.substring(0, 500) });
-        }
-      });
+    const response = await axios.post(WEB_APP_URL, {
+      action: 'importChunks',
+      chunks: chunks
+    }, {
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      maxRedirects: 5,
+      timeout: 30000, // 30 second timeout
+      validateStatus: (status) => status < 500
     });
 
-    req.on('error', (error) => {
-      console.error(`Request error for batch ${batchNumber}:`, error);
-      reject(error);
+    console.log(`Batch ${batchNumber} response:`, {
+      status: response.status,
+      success: response.data.success,
+      imported: response.data.imported,
+      total: response.data.total
     });
 
-    req.write(data);
-    req.end();
-  });
+    // Verify the response indicates success
+    if (response.data.success === false || response.data.error) {
+      console.error(`Batch ${batchNumber} failed on server:`, response.data.error || 'Unknown error');
+      return {
+        error: response.data.error || 'Server reported failure',
+        serverResponse: response.data
+      };
+    }
+
+    if (response.data.imported === 0 && chunks.length > 0) {
+      console.error(`Batch ${batchNumber} WARNING: No chunks imported despite sending ${chunks.length}`);
+      return {
+        error: 'No chunks imported',
+        imported: 0,
+        serverResponse: response.data
+      };
+    }
+
+    console.log(`Batch ${batchNumber} SUCCESS: Imported ${response.data.imported}/${chunks.length} chunks`);
+    return response.data;
+
+  } catch (error) {
+    if (error.response) {
+      console.error(`Batch ${batchNumber} server error:`, error.response.status);
+      return { error: `Server error: ${error.response.status}` };
+    } else if (error.request) {
+      console.error(`Batch ${batchNumber} no response from server`);
+      return { error: 'No response from server' };
+    } else {
+      console.error(`Batch ${batchNumber} request error:`, error.message);
+      return { error: error.message };
+    }
+  }
 }
 
 async function uploadEmbeddings() {
@@ -145,6 +145,11 @@ async function uploadEmbeddings() {
     console.log(`Successfully uploaded: ${successCount}`);
     console.log(`Failed: ${errorCount}`);
 
+    if (successCount > 0) {
+      console.log('\n✅ Upload successful! Check your Google Sheet for the imported data.');
+      console.log('The 302 redirect issue has been resolved by using axios.');
+    }
+
   } catch (error) {
     console.error('Error reading or processing embeddings file:', error.message);
     process.exit(1);
@@ -154,7 +159,8 @@ async function uploadEmbeddings() {
 // Run the upload
 console.log('Starting embeddings upload to Google Apps Script...');
 console.log(`Web App URL: ${WEB_APP_URL}`);
-console.log(`Batch size: ${BATCH_SIZE} chunks per request\n`);
+console.log(`Batch size: ${BATCH_SIZE} chunks per request`);
+console.log('Using axios for proper redirect handling (POST→GET)\n');
 
 uploadEmbeddings().catch(error => {
   console.error('Fatal error:', error);

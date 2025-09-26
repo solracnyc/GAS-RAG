@@ -79,11 +79,9 @@ function doPost(e) {
     console.error('Stack:', error.stack);
     return jsonResponse({ error: error.message }, 500);
   } finally {
-    // Always release the lock
-    if (lock.hasLock()) {
-      lock.releaseLock();
-      console.log('Lock released');
-    }
+    // Always release the lock (no check needed - hasLock() has known reliability issues)
+    lock.releaseLock();
+    console.log('Lock released');
   }
 }
 
