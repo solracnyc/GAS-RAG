@@ -91,10 +91,38 @@ After running the pipeline:
 
 ## 🐛 Troubleshooting
 
+### Common Issues
+
 - **401 Error**: Check Bearer prefix in Firecrawl auth header
 - **429 Error**: Rate limited - wait and retry with backoff
 - **No data found**: Run `npm run crawl` first
 - **Memory issues**: Reduce BATCH_SIZE in .env
+
+### Google Sheets Import Issues (Fixed)
+
+**Problem**: `Total_Chunks` shows 0 despite successful execution logs
+
+**Root Causes**:
+1. Missing `SpreadsheetApp.flush()` calls causing phantom data loss
+2. Large embedding arrays causing silent JSON parsing failures
+3. Race conditions from concurrent POST requests
+4. Insufficient error logging
+
+**Solutions Applied**:
+- Added `SpreadsheetApp.flush()` after all write operations
+- Reduced batch size from 50 to 25 chunks
+- Implemented `LockService` for concurrent safety
+- Added comprehensive logging and write verification
+- Added retry logic with exponential backoff
+
+**To Test Fixes**:
+```bash
+# Test with 5 chunks first
+node test-upload-small.js
+
+# If successful, run full upload
+node upload-embeddings.js
+```
 
 ## 📝 License
 

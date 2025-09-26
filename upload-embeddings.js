@@ -10,7 +10,9 @@ const https = require('https');
 // Configuration
 const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxqw1sP_rvNYf6PJYzsJRpH-yEsNYo31WkYs8LtGaT3MNHqUiiDbVjXU3Fjb_a_xd4g8Q/exec';
 const EMBEDDINGS_FILE = './data/processed/embeddings_1758558291750.json';
-const BATCH_SIZE = 50; // Send 50 chunks at a time to avoid timeout
+const BATCH_SIZE = 25; // Reduced from 50 to avoid memory issues and JSON parsing failures
+const RETRY_ATTEMPTS = 3; // Retry failed batches
+const RETRY_DELAY = 2000; // 2 second delay between retries
 
 async function sendBatch(chunks, batchNumber, totalBatches) {
   return new Promise((resolve, reject) => {
@@ -42,11 +44,22 @@ async function sendBatch(chunks, batchNumber, totalBatches) {
         try {
           const result = JSON.parse(responseData);
           console.log(`Batch ${batchNumber} response:`, result);
-          resolve(result);
+
+          // Verify the response indicates success
+          if (result.success === false || result.error) {
+            console.error(`Batch ${batchNumber} failed on server:`, result.error || 'Unknown error');
+            resolve({ error: result.error || 'Server reported failure', serverResponse: result });
+          } else if (result.imported === 0 && chunks.length > 0) {
+            console.error(`Batch ${batchNumber} WARNING: No chunks imported despite sending ${chunks.length}`);
+            resolve({ error: 'No chunks imported', imported: 0, serverResponse: result });
+          } else {
+            console.log(`Batch ${batchNumber} SUCCESS: Imported ${result.imported}/${chunks.length} chunks`);
+            resolve(result);
+          }
         } catch (e) {
           console.error(`Error parsing response for batch ${batchNumber}:`, e.message);
-          console.error('Response:', responseData);
-          resolve({ error: 'Failed to parse response' });
+          console.error('Response:', responseData.substring(0, 500));
+          resolve({ error: 'Failed to parse response', rawResponse: responseData.substring(0, 500) });
         }
       });
     });
@@ -79,25 +92,51 @@ async function uploadEmbeddings() {
       const batch = allChunks.slice(i, i + BATCH_SIZE);
       const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
 
-      try {
-        const result = await sendBatch(batch, batchNumber, totalBatches);
+      let retryCount = 0;
+      let batchSuccess = false;
 
-        if (result.error) {
-          errorCount += batch.length;
-          console.error(`Batch ${batchNumber} failed:`, result.error);
-        } else {
-          successCount += batch.length;
-          console.log(`Successfully imported batch ${batchNumber}`);
-        }
+      while (retryCount < RETRY_ATTEMPTS && !batchSuccess) {
+        try {
+          const result = await sendBatch(batch, batchNumber, totalBatches);
 
-        // Add a small delay between batches to avoid overwhelming the server
-        if (i + BATCH_SIZE < allChunks.length) {
-          console.log('Waiting 2 seconds before next batch...');
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          if (result.error) {
+            retryCount++;
+            if (retryCount < RETRY_ATTEMPTS) {
+              console.log(`Retrying batch ${batchNumber} (attempt ${retryCount + 1}/${RETRY_ATTEMPTS})...`);
+              await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * retryCount));
+            } else {
+              errorCount += batch.length;
+              console.error(`Batch ${batchNumber} failed after ${RETRY_ATTEMPTS} attempts:`, result.error);
+            }
+          } else {
+            // Verify actual import count
+            const actualImported = result.imported || 0;
+            successCount += actualImported;
+
+            if (actualImported < batch.length) {
+              console.warn(`Batch ${batchNumber}: Only ${actualImported}/${batch.length} chunks imported`);
+              errorCount += (batch.length - actualImported);
+            } else {
+              console.log(`✓ Batch ${batchNumber} complete: ${actualImported} chunks imported, total in sheet: ${result.total}`);
+            }
+            batchSuccess = true;
+          }
+        } catch (error) {
+          retryCount++;
+          if (retryCount < RETRY_ATTEMPTS) {
+            console.log(`Network error on batch ${batchNumber}, retrying (${retryCount + 1}/${RETRY_ATTEMPTS})...`);
+            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * retryCount));
+          } else {
+            errorCount += batch.length;
+            console.error(`Batch ${batchNumber} failed after ${RETRY_ATTEMPTS} attempts:`, error.message);
+          }
         }
-      } catch (error) {
-        errorCount += batch.length;
-        console.error(`Failed to send batch ${batchNumber}:`, error.message);
+      }
+
+      // Add delay between batches to avoid overwhelming the server
+      if (i + BATCH_SIZE < allChunks.length) {
+        console.log('Waiting 3 seconds before next batch...');
+        await new Promise(resolve => setTimeout(resolve, 3000));
       }
     }
 

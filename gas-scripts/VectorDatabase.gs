@@ -70,56 +70,135 @@ function setupVectorDatabase() {
  * Import chunks from external source (called via Web App)
  */
 function importChunks(chunks) {
-  const ss = SpreadsheetApp.openById(
-    PropertiesService.getScriptProperties().getProperty('VECTOR_DB_ID')
-  );
-  const sheet = ss.getSheetByName('Vectors');
+  console.log(`Starting import of ${chunks.length} chunks at ${new Date()}`);
 
-  const rows = [];
-  const timestamp = new Date();
+  try {
+    const vectorDbId = PropertiesService.getScriptProperties().getProperty('VECTOR_DB_ID');
+    if (!vectorDbId) {
+      throw new Error('VECTOR_DB_ID not found in Script Properties');
+    }
 
-  chunks.forEach(chunk => {
-    // Handle embedding whether it's already an array or needs parsing
-    const embedding = Array.isArray(chunk.embedding)
-      ? chunk.embedding
-      : JSON.parse(chunk.embedding);
+    const ss = SpreadsheetApp.openById(vectorDbId);
+    console.log(`Spreadsheet opened: ${ss.getName()}`);
 
-    // Use pre-calculated norm if available, otherwise calculate
-    const vectorNorm = chunk.vector_norm || Math.sqrt(
-      embedding.reduce((sum, val) => sum + val * val, 0)
-    );
+    const sheet = ss.getSheetByName('Vectors');
+    if (!sheet) {
+      throw new Error('Vectors sheet not found');
+    }
 
-    rows.push([
-      chunk.id,
-      chunk.content.substring(0, 200) + '...',
-      chunk.content,
-      JSON.stringify(embedding),
-      chunk.metadata?.source_url || chunk.source_url || '',
-      chunk.metadata?.component_type || chunk.component_type || '',
-      chunk.metadata?.chunk_type || chunk.chunk_type || '',
-      chunk.metadata?.method_signature || '',
-      chunk.metadata?.has_code ? 'TRUE' : 'FALSE',
-      chunk.metadata?.has_example ? 'TRUE' : 'FALSE',
-      chunk.embedding_dimensions || CONFIG.EMBEDDING_DIMENSIONS,
-      vectorNorm,
-      0,
-      timestamp
-    ]);
-  });
+    const initialRowCount = sheet.getLastRow();
+    console.log(`Sheet accessed: ${sheet.getName()}, current rows: ${initialRowCount}`);
 
-  // Append in batches
-  if (rows.length > 0) {
-    const lastRow = sheet.getLastRow();
-    sheet.getRange(lastRow + 1, 1, rows.length, 14).setValues(rows);
+    const rows = [];
+    const timestamp = new Date();
+    let processedCount = 0;
+    let errorCount = 0;
 
-    // Update metadata
-    updateMetadata(ss, rows.length);
+    chunks.forEach((chunk, index) => {
+      try {
+        // Log every 10th chunk for visibility
+        if (index % 10 === 0) {
+          console.log(`Processing chunk ${index}/${chunks.length}: ${chunk.id}`);
+        }
+
+        // Handle embedding whether it's already an array or needs parsing
+        let embedding;
+        try {
+          embedding = Array.isArray(chunk.embedding)
+            ? chunk.embedding
+            : JSON.parse(chunk.embedding);
+        } catch (parseError) {
+          console.error(`Failed to parse embedding for chunk ${chunk.id}:`, parseError.toString());
+          errorCount++;
+          return; // Skip this chunk
+        }
+
+        // Validate embedding dimensions
+        if (!embedding || embedding.length !== CONFIG.EMBEDDING_DIMENSIONS) {
+          console.error(`Invalid embedding dimensions for chunk ${chunk.id}: ${embedding ? embedding.length : 'null'}`);
+          errorCount++;
+          return;
+        }
+
+        // Use pre-calculated norm if available, otherwise calculate
+        const vectorNorm = chunk.vector_norm || Math.sqrt(
+          embedding.reduce((sum, val) => sum + val * val, 0)
+        );
+
+        rows.push([
+          chunk.id,
+          chunk.content.substring(0, 200) + '...',
+          chunk.content,
+          JSON.stringify(embedding),
+          chunk.metadata?.source_url || chunk.source_url || '',
+          chunk.metadata?.component_type || chunk.component_type || '',
+          chunk.metadata?.chunk_type || chunk.chunk_type || '',
+          chunk.metadata?.method_signature || '',
+          chunk.metadata?.has_code ? 'TRUE' : 'FALSE',
+          chunk.metadata?.has_example ? 'TRUE' : 'FALSE',
+          chunk.embedding_dimensions || CONFIG.EMBEDDING_DIMENSIONS,
+          vectorNorm,
+          0,
+          timestamp
+        ]);
+
+        processedCount++;
+      } catch (chunkError) {
+        console.error(`Failed to process chunk ${index}:`, chunkError.toString());
+        errorCount++;
+      }
+    });
+
+    console.log(`Processed ${processedCount} chunks successfully, ${errorCount} errors`);
+
+    // Append in batches
+    if (rows.length > 0) {
+      const lastRow = sheet.getLastRow();
+      sheet.getRange(lastRow + 1, 1, rows.length, 14).setValues(rows);
+
+      // CRITICAL: Force data commit to prevent phantom data loss
+      SpreadsheetApp.flush();
+      console.log(`Flushed ${rows.length} rows to sheet`);
+
+      // Verify write by reading back the last row
+      const finalRowCount = sheet.getLastRow();
+      const expectedFinalCount = initialRowCount + rows.length;
+
+      if (finalRowCount === expectedFinalCount) {
+        console.log(`✓ Write verification successful: ${finalRowCount} total rows`);
+
+        // Read back last written chunk for additional verification
+        const lastWrittenRow = sheet.getRange(finalRowCount, 1, 1, 14).getValues()[0];
+        console.log(`✓ Last chunk ID verified: ${lastWrittenRow[0]}`);
+      } else {
+        console.error(`✗ Write verification FAILED: Expected ${expectedFinalCount} rows, got ${finalRowCount}`);
+      }
+
+      // Update metadata
+      updateMetadata(ss, rows.length);
+    } else {
+      console.log('No valid rows to append');
+    }
+
+    return {
+      success: true,
+      imported: rows.length,
+      processed: processedCount,
+      errors: errorCount,
+      total: sheet.getLastRow() - 1
+    };
+
+  } catch (error) {
+    console.error('Import failed:', error.toString());
+    console.error('Stack trace:', error.stack);
+
+    return {
+      success: false,
+      error: error.toString(),
+      imported: 0,
+      total: 0
+    };
   }
-
-  return {
-    imported: rows.length,
-    total: sheet.getLastRow() - 1
-  };
 }
 
 /**
@@ -199,6 +278,10 @@ function updateMetadata(ss, addedChunks) {
   metaSheet.getRange('B2').setValue(currentTotal + addedChunks);
   metaSheet.getRange('B3').setValue(new Date());
   metaSheet.getRange('C2:C3').setValue(new Date());
+
+  // CRITICAL: Force metadata commit
+  SpreadsheetApp.flush();
+  console.log(`Metadata updated: Total chunks now ${currentTotal + addedChunks}`);
 }
 
 /**

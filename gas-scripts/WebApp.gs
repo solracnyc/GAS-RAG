@@ -30,14 +30,36 @@ function doGet(e) {
  * Handle POST requests
  */
 function doPost(e) {
+  const lock = LockService.getScriptLock();
+
   try {
+    // Wait up to 30 seconds for exclusive access
+    const acquired = lock.waitLock(30000);
+    if (!acquired) {
+      console.error('Could not acquire lock - server busy');
+      return jsonResponse({
+        error: 'Server busy - could not acquire lock',
+        retryAfter: 5
+      }, 503);
+    }
+
+    console.log(`POST request received with action: ${e.postData?.contents?.substring(0, 100)}`);
+
     const data = JSON.parse(e.postData.contents);
     const action = data.action;
+
+    console.log(`Processing action: ${action}`);
 
     switch (action) {
       case 'import':
       case 'importChunks':  // Support both action names
+        console.log(`Importing ${data.chunks?.length || 0} chunks`);
         const result = importChunks(data.chunks);
+
+        // Force final flush before releasing lock
+        SpreadsheetApp.flush();
+
+        console.log(`Import result: ${JSON.stringify(result)}`);
         return jsonResponse({ success: true, ...result });
 
       case 'search':
@@ -49,10 +71,19 @@ function doPost(e) {
         return jsonResponse({ embedding: embedding });
 
       default:
+        console.error(`Unknown action: ${action}`);
         return jsonResponse({ error: 'Unknown action' }, 400);
     }
   } catch (error) {
+    console.error('doPost error:', error.toString());
+    console.error('Stack:', error.stack);
     return jsonResponse({ error: error.message }, 500);
+  } finally {
+    // Always release the lock
+    if (lock.hasLock()) {
+      lock.releaseLock();
+      console.log('Lock released');
+    }
   }
 }
 
