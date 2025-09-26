@@ -7,9 +7,10 @@
     "pipeline": "node src/index.js",
     "crawl": "node src/scraper/crawler.js",
     "embed": "node src/embeddings/generator.js",
-    "import": "node src/storage/sheets-importer.js",
-    "search": "node src/search/rag.js",
-    "test": "node src/test.js"
+    "migrate": "node src/storage/supabase-migrator.js",
+    "upload": "node scripts/migration/upload-to-supabase.js",
+    "test": "node scripts/testing/test-supabase-pipeline.js",
+    "test:all": "node scripts/testing/test-supabase-pipeline.js"
   },
   "keywords": [
     "google-apps-script",
@@ -22,6 +23,7 @@
   "license": "MIT",
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
+    "@supabase/supabase-js": "^2.39.0",
     "axios": "^1.12.2",
     "dotenv": "^16.4.5",
     "node-fetch": "^3.3.2"

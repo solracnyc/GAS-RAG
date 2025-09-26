@@ -1,6 +1,7 @@
 # Environment variables
 .env
 .env.local
+.env.production
 
 # API keys and credentials
 config/api_keys.json
@@ -9,13 +10,20 @@ config/credentials.json
 # Dependencies
 node_modules/
 
-# Output and data files
-output/
+# Data files - keeping structure but ignoring content
 data/raw/
 data/processed/
 logs/
+output/
 
-# IDE files
+# Cache and checkpoint files
+.cache/
+.tmp/
+.semantic_cache.json
+.migration_checkpoint.json
+.upload_checkpoint.json
+
+# IDE and editor files
 .vscode/
 .idea/
 *.swp
@@ -25,10 +33,11 @@ logs/
 # OS files
 .DS_Store
 Thumbs.db
+Desktop.ini
 
 # Test files
-*.test.js
 coverage/
+.nyc_output/
 
 # Temporary files
 *.tmp
@@ -38,3 +47,11 @@ coverage/
 # Build files
 dist/
 build/
+
+# Google Apps Script
+.clasp.json
+appsscript.json
+
+# Backup files
+*.backup
+*.bak
