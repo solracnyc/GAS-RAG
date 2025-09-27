@@ -82,12 +82,17 @@ export function VirtualizedResults({
       <div
         ref={parentRef}
         className="h-[600px] overflow-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600"
+        style={{
+          contain: 'strict',
+          overflowAnchor: 'none',
+        }}
       >
         <div
           style={{
             height: `${virtualizer.getTotalSize()}px`,
             width: '100%',
             position: 'relative',
+            contain: 'layout style paint',
           }}
         >
           <AnimatePresence mode="popLayout">
@@ -158,7 +163,7 @@ export function VirtualizedResults({
       </div>
 
       {/* Scroll to top button */}
-      {virtualizer.scrollOffset > 200 && (
+      {virtualizer.scrollOffset !== null && virtualizer.scrollOffset > 200 && (
         <motion.button
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

@@ -3,7 +3,7 @@
 import { SearchInterface } from '@/components/SearchInterface';
 import { VirtualizedResults } from '@/components/VirtualizedResults';
 import { useDebouncedSearch, usePrefetchCommonQueries } from '@/hooks/useVectorSearch';
-import { useLayoutPreferences, usePerformanceMetrics } from '@/lib/stores/ui-store';
+import { useLayoutPreferences, usePerformanceMetrics, useUIStore } from '@/lib/stores/ui-store';
 import { Grid3x3, List, PanelLeftClose, Settings, BarChart3, Zap } from 'lucide-react';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -11,7 +11,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 export default function HomePage() {
   const { data, isLoading } = useDebouncedSearch('', 300);
   const { layout, setLayout, compactMode, toggleCompactMode } = useLayoutPreferences();
-  const { showPerformanceMetrics, togglePerformanceMetrics, lastSearchLatency, cacheHitRate } = usePerformanceMetrics();
+  const { showPerformanceMetrics, lastSearchLatency, cacheHitRate } = usePerformanceMetrics();
+  const togglePerformanceMetrics = useUIStore((state) => state.togglePerformanceMetrics);
   const [showSettings, setShowSettings] = useState(false);
 
   // Prefetch common queries for better UX
