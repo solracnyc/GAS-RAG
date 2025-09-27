@@ -1,5 +1,5 @@
 # Google Apps Script AI Knowledge Base - Complete Implementation Plan v4
-## Firecrawl v2 + Gemini 2.5 Pro Edition
+## Firecrawl v2 + Gemini 2.5 Flash Edition
 
 ## Project Overview
 **Goal:** Build a comprehensive vector database of Google Apps Script documentation using Firecrawl v2 API, Google's free embedding API, and Google Sheets/Supabase for storage.
@@ -11,7 +11,7 @@
 - **Embeddings:** Google's gemini-embedding-001 (FREE via Google AI Studio)
 - **Storage:** Google Sheets → Supabase (when scaling)
 - **Orchestration:** Google Apps Script / Node.js
-- **LLM:** **gemini-2.5-pro** - $1.25/M input tokens, $10.00/M output tokens
+- **LLM:** **gemini-2.5-flash-preview-09-2025** - Optimized for speed and cost-effectiveness
 
 ---
 
@@ -41,16 +41,16 @@ const FIRECRAWL_CONFIG = {
 | Model | Model ID | Purpose | Free Tier Limits |
 |-------|----------|---------|-----------------|
 | **gemini-embedding-001** | `models/gemini-embedding-001` | Vector embeddings | 100 RPM, 30K TPM, 1K RPD |
-| **gemini-2.5-pro** | `models/gemini-2.5-pro` | RAG synthesis & reasoning | 100 requests/day |
+| **gemini-2.5-flash-preview-09-2025** | `models/gemini-2.5-flash-preview-09-2025` | RAG synthesis & reasoning | 100 requests/day |
 
-### 1.3 Gemini 2.5 Pro Technical Specifications
-- **Model ID:** `gemini-2.5-pro`
+### 1.3 Gemini 2.5 Flash Technical Specifications
+- **Model ID:** `gemini-2.5-flash-preview-09-2025`
 - **Context Window:** 1,048,576 input tokens (1 million), expandable to 2 million
 - **Output Tokens:** 65,536 max
 - **Token/Character Ratio:** ~4 characters per token
 - **Thinking Mode:** Enabled by default for better reasoning
 - **Context Caching:** 75% cost reduction for repeated content
-- **API Endpoint:** `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent`
+- **API Endpoint:** `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent`
 
 ### 1.4 Create Project Structure
 ```
@@ -687,7 +687,7 @@ function setupVectorDatabase() {
 
 [Content continues with all phases through Phase 7, troubleshooting guide, metrics, and appendices...]
 
-**Version:** 4.0.1 (Complete Firecrawl v2 + Gemini 2.5 Pro with Enhanced Phase 5)
+**Version:** 4.0.1 (Complete Firecrawl v2 + Gemini 2.5 Flash with Enhanced Phase 5)
 **Last Updated:** September 2025
 **Status:** Production Ready
 **Your API Key:** fc-5943273419d64489856281e51838a24e (Keep secure!)

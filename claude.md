@@ -13,7 +13,7 @@ Firecrawl v2 → Chunking → Gemini Embeddings → Google Sheets → RAG Search
 ## Key APIs & Costs
 - **Firecrawl v2**: $19-83/month (3000 credits)
 - **Gemini Embeddings**: FREE (gemini-embedding-001)
-- **Gemini 2.5 Pro**: $1.25/M input, $10/M output tokens
+- **Gemini 2.5 Flash**: Optimized for speed and cost-effectiveness
 - **Total**: ~$29-113/month
 
 ## Project Structure
@@ -49,7 +49,7 @@ npm run search       # Test search
 - **Chunk Size**: 450 tokens (15% overlap)
 - **Embeddings**: 768 dimensions
 - **Storage Limit**: 5000 vectors in Sheets
-- **Context Window**: 1M tokens (Gemini 2.5 Pro)
+- **Context Window**: 1M tokens (Gemini 2.5 Flash)
 
 ## Development Phases
 1. **Setup**: API keys, project structure
@@ -57,7 +57,7 @@ npm run search       # Test search
 3. **Chunk**: Smart splitting with metadata
 4. **Embed**: Generate vectors (rate limited)
 5. **Store**: Google Sheets initially
-6. **Search**: RAG with Gemini 2.5 Pro
+6. **Search**: RAG with Gemini 2.5 Flash
 
 ## Performance Thresholds
 - Migrate to Supabase when:
@@ -79,7 +79,7 @@ GET https://api.firecrawl.dev/v2/crawl/{crawlId}
 POST https://generativelanguage.googleapis.com/v1beta/models/embedding-001:embedContent
 
 // Test RAG synthesis
-POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent
+POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent
 ```
 
 ## Quick Troubleshooting
