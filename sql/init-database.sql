@@ -146,8 +146,8 @@ RETURNS TABLE (
     total_documents BIGINT,
     total_chunks BIGINT,
     avg_chunk_tokens FLOAT,
-    total_storage_mb FLOAT,
-    index_size_mb FLOAT,
+    total_storage_mb TEXT,
+    index_size_mb TEXT,
     oldest_document TIMESTAMPTZ,
     newest_document TIMESTAMPTZ
 )
