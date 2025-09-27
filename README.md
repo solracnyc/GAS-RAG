@@ -22,9 +22,9 @@ A high-performance RAG (Retrieval-Augmented Generation) system for Google Apps S
 ## 🛠️ Technology Stack
 
 - **Vector Database**: Supabase pgvector with HNSW indexing
-- **Embeddings**: Google Gemini (768-dimensional)
+- **Embeddings**: Google Gemini embedding-001 (768-dimensional)
 - **Web Scraping**: Firecrawl v2 API
-- **RAG Synthesis**: Gemini 2.5 Pro
+- **RAG Synthesis**: Gemini 2.5 Flash (gemini-2.5-flash-preview-09-2025)
 - **Runtime**: Node.js 18+ / Google Apps Script
 
 ## 📁 Project Structure
@@ -109,7 +109,7 @@ node scripts/testing/test-supabase-pipeline.js
 # Firecrawl API
 FIRECRAWL_API_KEY=fc-your-api-key
 
-# Google AI
+# Google AI (for embedding-001 and gemini-2.5-flash-preview-09-2025)
 GOOGLE_AI_KEY=AIza-your-key
 
 # Supabase
