@@ -1,10 +1,10 @@
 /**
- * RAG Search with Gemini 2.5 Pro
+ * RAG Search with Gemini 2.5 Flash
  * Provides intelligent search and synthesis
  */
 
 /**
- * Search and synthesize answer using Gemini 2.5 Pro
+ * Search and synthesize answer using Gemini 2.5 Flash
  */
 function searchWithRAG(query) {
   try {
@@ -21,7 +21,7 @@ function searchWithRAG(query) {
       };
     }
 
-    // Synthesize answer with Gemini 2.5 Pro
+    // Synthesize answer with Gemini 2.5 Flash
     return synthesizeAnswer(query, searchResults);
 
   } catch (error) {
@@ -35,7 +35,7 @@ function searchWithRAG(query) {
 }
 
 /**
- * Synthesize answer using Gemini 2.5 Pro
+ * Synthesize answer using Gemini 2.5 Flash
  */
 function synthesizeAnswer(query, searchResults) {
   const apiKey = PropertiesService.getScriptProperties().getProperty('GOOGLE_AI_KEY');
@@ -70,7 +70,7 @@ Instructions:
 4. If multiple approaches exist, explain the differences
 5. Keep the response concise but complete`;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
 
   const payload = {
     contents: [{
@@ -105,7 +105,7 @@ Instructions:
           method: r.methodSignature,
           relevance: r.similarity
         })),
-        model: 'gemini-2.5-pro'
+        model: 'gemini-2.5-flash-preview-09-2025'
       };
     } else {
       throw new Error(result.error?.message || 'Unknown error');

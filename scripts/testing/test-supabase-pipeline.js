@@ -6,8 +6,8 @@
  */
 
 require('dotenv').config();
-const SupabaseVectorClient = require('./src/storage/supabase-client');
-const { SemanticCache } = require('./src/storage/semantic-cache');
+const SupabaseVectorClient = require('../../src/storage/supabase-client');
+const { SemanticCache } = require('../../src/storage/semantic-cache');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 // Test configuration

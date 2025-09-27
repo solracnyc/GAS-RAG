@@ -65,7 +65,7 @@ curl "YOUR_WEB_APP_URL?action=status"
 
 - **VectorDatabase.gs**: Manages the Google Sheets storage
 - **WebApp.gs**: Provides API endpoints for importing/searching
-- **SearchRAG.gs**: Implements RAG search with Gemini 2.5 Pro
+- **SearchRAG.gs**: Implements RAG search with Gemini 2.5 Flash
 
 ## Important URLs to Save:
 

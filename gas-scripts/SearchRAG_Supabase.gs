@@ -1,5 +1,5 @@
 /**
- * RAG Search with Supabase pgvector and Gemini 2.5 Pro
+ * RAG Search with Supabase pgvector and Gemini 2.5 Flash
  * Enhanced version using Supabase for vector storage
  */
 
@@ -32,7 +32,7 @@ function searchWithSupabaseRAG(query) {
 
     console.log(`Found ${searchResults.length} relevant documents`);
 
-    // Synthesize answer with Gemini 2.5 Pro
+    // Synthesize answer with Gemini 2.5 Flash
     return synthesizeAnswerWithGemini(query, searchResults);
 
   } catch (error) {
@@ -87,7 +87,7 @@ function hybridSupabaseRAG(query) {
 }
 
 /**
- * Synthesize answer using Gemini 2.5 Pro
+ * Synthesize answer using Gemini 2.5 Flash
  */
 function synthesizeAnswerWithGemini(query, searchResults) {
   const apiKey = PropertiesService.getScriptProperties().getProperty('GOOGLE_AI_KEY');
@@ -135,7 +135,7 @@ Instructions:
 6. Format code examples properly using markdown code blocks`;
 
   // Call Gemini API
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
 
   const payload = {
     contents: [{
@@ -178,7 +178,7 @@ Instructions:
       return {
         answer: answer,
         sources: sources,
-        model: 'gemini-2.5-pro',
+        model: 'gemini-2.5-flash-preview-09-2025',
         totalResults: searchResults.length,
         processingTime: new Date().toISOString()
       };
